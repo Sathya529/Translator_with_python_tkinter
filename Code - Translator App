@@ -1,0 +1,78 @@
+import os
+import customtkinter as ctk
+from tkinter import filedialog, messagebox
+from docx import Document
+from googletrans import Translator
+
+# Initialize Tkinter App
+ctk.set_appearance_mode("System")  # Can be "Light" or "Dark"
+ctk.set_default_color_theme("blue")  # Theme color
+
+# Translator instance
+translator = Translator()
+
+# Function to translate text
+def translate_text(text):
+    try:
+        translated = translator.translate(text, dest="en")
+        return translated.text
+    except Exception as e:
+        print(f"Translation error: {e}")
+        return text  # Return original text if translation fails
+
+# Function to select files
+def select_files():
+    file_paths = filedialog.askopenfilenames(filetypes=[("Word Documents", "*.docx")])
+    if file_paths:
+        entry_files.delete(0, "end")
+        entry_files.insert(0, "; ".join(file_paths))
+
+# Function to process files
+def translate_files():
+    files = entry_files.get().split("; ")
+    
+    if not files or files == [""]:
+        messagebox.showerror("Error", "Please select at least one file.")
+        return
+    
+    for file_path in files:
+        if file_path.strip() == "":
+            continue
+        
+        try:
+            doc = Document(file_path)
+            translated_doc = Document()
+            
+            for para in doc.paragraphs:
+                translated_text = translate_text(para.text)
+                translated_doc.add_paragraph(translated_text)
+
+            output_path = os.path.join(os.path.dirname(file_path), f"translated_{os.path.basename(file_path)}")
+            translated_doc.save(output_path)
+            print(f"Translated file saved: {output_path}")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to process {file_path}: {e}")
+
+    messagebox.showinfo("Success", "Translation completed for all selected files!")
+
+# GUI Setup
+app = ctk.CTk()
+app.title("Multi-File Translator")
+app.geometry("600x350")
+
+# Widgets
+label_title = ctk.CTkLabel(app, text="Select Word Files to Translate", font=("Arial", 20))
+label_title.pack(pady=10)
+
+entry_files = ctk.CTkEntry(app, width=450)
+entry_files.pack(pady=5)
+
+btn_browse = ctk.CTkButton(app, text="Browse", command=select_files)
+btn_browse.pack(pady=5)
+
+btn_translate = ctk.CTkButton(app, text="Translate Files", command=translate_files)
+btn_translate.pack(pady=20)
+
+# Run App
+app.mainloop()
